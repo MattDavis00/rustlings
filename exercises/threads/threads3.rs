@@ -1,10 +1,10 @@
 // threads3.rs
 // Execute `rustlings hint threads3` or use the `hint` watch subcommand for a hint.
 
-// I AM NOT DONE
-
-use std::sync::mpsc;
-use std::sync::Arc;
+use std::error::Error;
+use std::sync::mpsc::Sender;
+use std::sync::{mpsc, Mutex, MutexGuard};
+use std::sync::{Arc, PoisonError};
 use std::thread;
 use std::time::Duration;
 
@@ -29,21 +29,32 @@ fn send_tx(q: Queue, tx: mpsc::Sender<u32>) -> () {
     let qc1 = Arc::clone(&qc);
     let qc2 = Arc::clone(&qc);
 
-    thread::spawn(move || {
+    let tx = tx;
+    let tx1 = tx.clone();
+    let tx2 = tx.clone();
+
+    let handle1 = thread::spawn(move || {
         for val in &qc1.first_half {
             println!("sending {:?}", val);
-            tx.send(*val).unwrap();
+            tx1.send(*val).unwrap();
             thread::sleep(Duration::from_secs(1));
         }
     });
 
-    thread::spawn(move || {
+    let handle2 = thread::spawn(move || {
         for val in &qc2.second_half {
             println!("sending {:?}", val);
-            tx.send(*val).unwrap();
+            tx2.send(*val).unwrap();
             thread::sleep(Duration::from_secs(1));
         }
     });
+
+    let test1 = handle1
+        .join()
+        .expect("Couldn't join on the associated thread");
+    let test2 = handle2
+        .join()
+        .expect("Couldn't join on the associated thread");
 }
 
 fn main() {

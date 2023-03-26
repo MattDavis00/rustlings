@@ -6,6 +6,7 @@
 // Execute `rustlings hint try_from_into` or use the `hint` watch subcommand for a hint.
 
 use std::convert::{TryFrom, TryInto};
+use std::mem::discriminant;
 
 #[derive(Debug, PartialEq)]
 struct Color {
@@ -15,15 +16,21 @@ struct Color {
 }
 
 // We will use this error type for these `TryFrom` conversions.
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 enum IntoColorError {
     // Incorrect length of slice
     BadLen,
     // Integer conversion error
     IntConversion,
+    // Max value exceeded
+    IntOutOfBounds(String),
 }
 
-// I AM NOT DONE
+impl PartialEq for IntoColorError {
+    fn eq(&self, other: &Self) -> bool {
+        discriminant(self) == discriminant(other)
+    }
+}
 
 // Your task is to complete this implementation
 // and return an Ok result of inner type Color.
@@ -38,6 +45,30 @@ enum IntoColorError {
 impl TryFrom<(i16, i16, i16)> for Color {
     type Error = IntoColorError;
     fn try_from(tuple: (i16, i16, i16)) -> Result<Self, Self::Error> {
+        if !(0..=255).contains(&tuple.0) {
+            return Err(Self::Error::IntOutOfBounds(format!(
+                "Red value exceeds 0..=255 range (red={})",
+                tuple.0
+            )));
+        }
+        if !(0..=255).contains(&tuple.1) {
+            return Err(Self::Error::IntOutOfBounds(format!(
+                "Green value exceeds 0..=255 range (green={})",
+                tuple.1
+            )));
+        }
+        if !(0..=255).contains(&tuple.2) {
+            return Err(Self::Error::IntOutOfBounds(format!(
+                "Blue value exceeds 0..=255 range (blue={})",
+                tuple.2
+            )));
+        }
+
+        Ok(Color {
+            red: tuple.0 as u8,
+            green: tuple.1 as u8,
+            blue: tuple.2 as u8,
+        })
     }
 }
 
@@ -45,6 +76,8 @@ impl TryFrom<(i16, i16, i16)> for Color {
 impl TryFrom<[i16; 3]> for Color {
     type Error = IntoColorError;
     fn try_from(arr: [i16; 3]) -> Result<Self, Self::Error> {
+        let tuple = (arr[0], arr[1], arr[2]);
+        Color::try_from(tuple)
     }
 }
 
@@ -52,6 +85,11 @@ impl TryFrom<[i16; 3]> for Color {
 impl TryFrom<&[i16]> for Color {
     type Error = IntoColorError;
     fn try_from(slice: &[i16]) -> Result<Self, Self::Error> {
+        if slice.len() != 3 {
+            return Err(Self::Error::BadLen);
+        }
+        let tuple = (slice[0], slice[1], slice[2]);
+        Color::try_from(tuple)
     }
 }
 
@@ -81,21 +119,21 @@ mod tests {
     fn test_tuple_out_of_range_positive() {
         assert_eq!(
             Color::try_from((256, 1000, 10000)),
-            Err(IntoColorError::IntConversion)
+            Err(IntoColorError::IntOutOfBounds("".to_string()))
         );
     }
     #[test]
     fn test_tuple_out_of_range_negative() {
         assert_eq!(
             Color::try_from((-1, -10, -256)),
-            Err(IntoColorError::IntConversion)
+            Err(IntoColorError::IntOutOfBounds("".to_string()))
         );
     }
     #[test]
     fn test_tuple_sum() {
         assert_eq!(
             Color::try_from((-1, 255, 255)),
-            Err(IntoColorError::IntConversion)
+            Err(IntoColorError::IntOutOfBounds("".to_string()))
         );
     }
     #[test]
@@ -114,17 +152,17 @@ mod tests {
     #[test]
     fn test_array_out_of_range_positive() {
         let c: Result<Color, _> = [1000, 10000, 256].try_into();
-        assert_eq!(c, Err(IntoColorError::IntConversion));
+        assert_eq!(c, Err(IntoColorError::IntOutOfBounds("".to_string())));
     }
     #[test]
     fn test_array_out_of_range_negative() {
         let c: Result<Color, _> = [-10, -256, -1].try_into();
-        assert_eq!(c, Err(IntoColorError::IntConversion));
+        assert_eq!(c, Err(IntoColorError::IntOutOfBounds("".to_string())));
     }
     #[test]
     fn test_array_sum() {
         let c: Result<Color, _> = [-1, 255, 255].try_into();
-        assert_eq!(c, Err(IntoColorError::IntConversion));
+        assert_eq!(c, Err(IntoColorError::IntOutOfBounds("".to_string())));
     }
     #[test]
     fn test_array_correct() {
@@ -144,7 +182,7 @@ mod tests {
         let arr = [10000, 256, 1000];
         assert_eq!(
             Color::try_from(&arr[..]),
-            Err(IntoColorError::IntConversion)
+            Err(IntoColorError::IntOutOfBounds("".to_string()))
         );
     }
     #[test]
@@ -152,7 +190,7 @@ mod tests {
         let arr = [-256, -1, -10];
         assert_eq!(
             Color::try_from(&arr[..]),
-            Err(IntoColorError::IntConversion)
+            Err(IntoColorError::IntOutOfBounds("".to_string()))
         );
     }
     #[test]
@@ -160,7 +198,7 @@ mod tests {
         let arr = [-1, 255, 255];
         assert_eq!(
             Color::try_from(&arr[..]),
-            Err(IntoColorError::IntConversion)
+            Err(IntoColorError::IntOutOfBounds("".to_string()))
         );
     }
     #[test]
