@@ -10,10 +10,16 @@
 // Write a function that calculates the price of an order of apples given
 // the quantity bought. No hints this time!
 
-// I AM NOT DONE
-
 // Put your function here!
-// fn calculate_price_of_apples {
+fn calculate_price_of_apples(quantity: u32) -> u32 {
+    const PRICE_PER_APPLE: u32 = 2;
+    const DISCOUNTED_PRICE_PER_APPLE: u32 = 1;
+    let price_per_apple = match quantity {
+        41.. => DISCOUNTED_PRICE_PER_APPLE,
+        _ => PRICE_PER_APPLE,
+    };
+    price_per_apple * quantity
+}
 
 // Don't modify this function!
 #[test]
